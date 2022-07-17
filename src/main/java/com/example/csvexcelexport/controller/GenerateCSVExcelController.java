@@ -13,13 +13,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +35,8 @@ public class GenerateCSVExcelController {
     @GetMapping(value = "/csv",
                 produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<InputStreamResource> exportCSV(@RequestBody List<ClientDataRequest> clientDataRequest,
-                                                         @RequestParam String metricName){
+                                                         @RequestParam String metricName,
+                                                         @RequestParam(required = false) String toggle){
 
         String[] csvHeader = {"Client Name", "Value"};
 
@@ -68,7 +67,12 @@ public class GenerateCSVExcelController {
 
         InputStreamResource fileInputStream = new InputStreamResource(byteArrayOutputStream);
         String timestamp = new SimpleDateFormat("MM-dd-yyyy").format(new java.util.Date());
-        String csvFileName = metricName + "_" + timestamp + ".csv";
+        String csvFileName;
+        if(toggle != null) {
+            csvFileName = metricName + "_" + toggle + "_" + timestamp + ".csv";
+        } else {
+            csvFileName = metricName + "_" + timestamp + ".csv";
+        }
 
         // setting HTTP headers
         HttpHeaders headers = new HttpHeaders();
