@@ -14,7 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.supercsv.io.CsvBeanWriter;
+import org.supercsv.io.ICsvBeanWriter;
+import org.supercsv.prefs.CsvPreference;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -28,11 +32,22 @@ import java.util.List;
 public class GenerateCSVExcelController {
 
 
+    /**
+     * Method to generate and download a csv file using commons-csv
+     *
+     * @author <a href="https://github.com/diegocmatte">diegocmatte</a>
+     *
+     * @param clientDataRequest Request body which will fill the file with the data.
+     * @param metricName Request parameter which will show what the metric are being generated.
+     * @param toggle Not required parameter which shows what kind of data is.
+     * @return Downloadable csv file.
+     */
+
     @ApiOperation(value = "Generate a csv file")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Return a csv file")
     })
-    @GetMapping(value = "/csv",
+    @GetMapping(value = "/v1/csv",
                 produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<InputStreamResource> exportCSV(@RequestBody List<ClientDataRequest> clientDataRequest,
                                                          @RequestParam String metricName,
@@ -85,6 +100,55 @@ public class GenerateCSVExcelController {
                 headers,
                 HttpStatus.OK
         );
+
+    }
+
+    /**
+     * Method to generate and download a csv file using supercsv
+     *
+     * @author <a href="https://github.com/diegocmatte">diegocmatte</a>
+     *
+     * @param clientDataRequest Request body which will fill the file with the data.
+     * @param metricName Request parameter which will show what the metric are being generated.
+     * @param toggle Not required parameter which shows what kind of data is.
+     * @param response
+     * @return
+     * @throws IOException
+     */
+    @GetMapping(value = "/v2/csv", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<Void> exportCSV_v2(@RequestBody List<ClientDataRequest> clientDataRequest,
+                                                    @RequestParam String metricName,
+                                                    @RequestParam(required = false) String toggle,
+                                                    HttpServletResponse response) throws IOException {
+
+        response.setContentType("text/csv");
+        String timestamp = new SimpleDateFormat("MM-dd-yyyy").format(new java.util.Date());
+        String csvFileName;
+        if(toggle != null) {
+            csvFileName = metricName + "_" + toggle + "_" + timestamp + ".csv";
+        } else {
+            csvFileName = metricName + "_" + timestamp + ".csv";
+        }
+        ICsvBeanWriter csvWriter = new CsvBeanWriter(response.getWriter(), CsvPreference.STANDARD_PREFERENCE);
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=" + csvFileName;
+        response.setHeader(headerKey, headerValue);
+
+
+        String[] csvHeader = {"Client Name", "Value"};
+        String[] nameMapping = {"clientName", "value"};
+
+        csvWriter.writeHeader(csvHeader);
+
+        for(ClientDataRequest clientData: clientDataRequest){
+            csvWriter.write(clientData, nameMapping);
+        }
+
+        csvWriter.close();
+
+
+
+        return ResponseEntity.ok().build();
 
     }
 
