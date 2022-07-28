@@ -1,8 +1,10 @@
 package com.example.csvexcelexport.pojo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-public class ClientDataRequest {
+@Data
+public class CompanyChartData {
 
     @JsonProperty("clientName")
     private String clientName;
