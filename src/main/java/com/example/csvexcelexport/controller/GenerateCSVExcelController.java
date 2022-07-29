@@ -304,6 +304,7 @@ public class GenerateCSVExcelController {
 
                 XSSFChart chart = drawing.createChart(anchor);
                 chart.setTitleText(clientDataObjectRequest.getMetricName());
+                chart.getCTChart().getTitle().getTx().getRich().getPArray(0).getRArray(0).getRPr().setSz(2000);
                 chart.setTitleOverlay(false);
 
                 //XDDFChartLegend legend = chart.getOrAddLegend();
@@ -311,6 +312,7 @@ public class GenerateCSVExcelController {
 
                 XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
                 bottomAxis.setTitle("Client Name");
+
                 XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
                 leftAxis.setTitle("Value ("+clientDataObjectRequest.getDataFormatCodeValue()+")");
                 leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
