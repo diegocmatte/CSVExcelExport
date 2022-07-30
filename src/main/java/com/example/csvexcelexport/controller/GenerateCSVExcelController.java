@@ -16,6 +16,7 @@ import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xddf.usermodel.XDDFLineProperties;
 import org.apache.poi.xddf.usermodel.chart.*;
 import org.apache.poi.xddf.usermodel.text.XDDFTextBody;
 import org.apache.poi.xssf.usermodel.*;
@@ -297,9 +298,7 @@ public class GenerateCSVExcelController {
                 for (int i = 0; i < clientDataObjectRequest.getCompanyChartData().size(); i++) {
                     Row row = sheet.createRow(anchor.getRow2() + 2 + i);
                     row.createCell(0).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getClientName());
-                    sheet.autoSizeColumn(0);
                     row.createCell(1).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getValue());
-                    sheet.autoSizeColumn(1);
                 }
 
                 XSSFChart chart = drawing.createChart(anchor);
@@ -318,11 +317,15 @@ public class GenerateCSVExcelController {
                 leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
                 leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 
+                sheet.shiftColumns(0,1,2);
+                sheet.autoSizeColumn(2);
+                sheet.autoSizeColumn(3);
+
                 XDDFDataSource<String> clientNames = XDDFDataSourcesFactory.fromStringCellRange(sheet,
-                        new CellRangeAddress(anchor.getRow2() + 2, anchor.getRow2() + 1 + clientDataObjectRequest.getCompanyChartData().size(), 0, 0));
+                        new CellRangeAddress(anchor.getRow2() + 2, anchor.getRow2() + 1 + clientDataObjectRequest.getCompanyChartData().size(), 2, 2));
 
                 XDDFNumericalDataSource<Double> values = XDDFDataSourcesFactory.fromNumericCellRange(sheet,
-                        new CellRangeAddress(anchor.getRow2() + 2, anchor.getRow2() +1 + clientDataObjectRequest.getCompanyChartData().size(), 1, 1));
+                        new CellRangeAddress(anchor.getRow2() + 2, anchor.getRow2() +1 + clientDataObjectRequest.getCompanyChartData().size(), 3, 3));
 
                 XDDFChartData data = chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
                 XDDFChartData.Series series = data.addSeries(clientNames, values);
