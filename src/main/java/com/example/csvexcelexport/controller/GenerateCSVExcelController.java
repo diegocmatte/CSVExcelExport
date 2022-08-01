@@ -4,6 +4,7 @@ package com.example.csvexcelexport.controller;
 import com.example.csvexcelexport.pojo.ClientDataObjectRequest;
 import com.example.csvexcelexport.pojo.ClientDataRequest;
 import com.example.csvexcelexport.pojo.CompanyChartData;
+import com.example.csvexcelexport.utils.ChartUtils;
 import com.example.csvexcelexport.utils.Constants;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -11,11 +12,10 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.hssf.usermodel.HSSFDataFormat;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
 import org.apache.poi.xddf.usermodel.chart.*;
 import org.apache.poi.xddf.usermodel.text.XDDFTextBody;
@@ -44,6 +44,7 @@ import java.util.List;
 @Api(value = "Generate files controller")
 public class GenerateCSVExcelController {
 
+    private boolean chartNeeded;
 
     /**
      * Method to generate and download a csv file using commons-csv
@@ -285,7 +286,7 @@ public class GenerateCSVExcelController {
                 headerCellStyle.setFont(headerFont);
 
                 XSSFDrawing drawing = sheet.createDrawingPatriarch();
-                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 2, 1, 11, 10 + clientDataObjectRequest.getCompanyChartData().size());
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 2, 1, 15, 15 + clientDataObjectRequest.getCompanyChartData().size());
 
                 Row headerRow = sheet.createRow(anchor.getRow2() + 1);
                 headerRow.createCell(0).setCellValue("Client Name");
@@ -295,10 +296,16 @@ public class GenerateCSVExcelController {
                     headerRow.getCell(i).setCellStyle(headerCellStyle);
                 }
 
-                for (int i = 0; i < clientDataObjectRequest.getCompanyChartData().size(); i++) {
-                    Row row = sheet.createRow(anchor.getRow2() + 2 + i);
-                    row.createCell(0).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getClientName());
-                    row.createCell(1).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getValue());
+                CellStyle rowCellStyle = workbook.createCellStyle();
+                if (dataFormat.equalsIgnoreCase(Constants.DATA_FORMAT_PERCENTAGE)) {
+                    rowCellStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00%"));
+                    for (int i = 0; i < clientDataObjectRequest.getCompanyChartData().size(); i++) {
+                        Row row = sheet.createRow(anchor.getRow2() + 2 + i);
+                        row.createCell(0).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getClientName());
+                        row.createCell(1).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getValue()/100);
+                        //rowCellStyle.setDataFormat(HSSFDataFormat.getBuiltinFormat("#,##0.00%"));
+                        row.getCell(1).setCellStyle(rowCellStyle);
+                    }
                 }
 
                 XSSFChart chart = drawing.createChart(anchor);
@@ -310,10 +317,19 @@ public class GenerateCSVExcelController {
                 //legend.setPosition(LegendPosition.TOP_RIGHT);
 
                 XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
-                bottomAxis.setTitle("Client Name");
+                XDDFTitle title = ChartUtils.getOrSetAxisTitle(bottomAxis);
+                title.setOverlay(false);
+                title.setText("Client Name");
+                title.getBody().getParagraph(0).addDefaultRunProperties().setFontSize(12d);
+
 
                 XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-                leftAxis.setTitle("Value ("+clientDataObjectRequest.getDataFormatCodeValue()+")");
+                title = ChartUtils.getOrSetAxisTitle(leftAxis);
+                title.setOverlay(false);
+                title.setText("Value ("+clientDataObjectRequest.getDataFormatCodeValue()+")");
+                title.getBody().getParagraph(0).addDefaultRunProperties().setFontSize(12d);
+
+
                 leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
                 leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 
@@ -322,19 +338,23 @@ public class GenerateCSVExcelController {
                 sheet.autoSizeColumn(3);
 
                 XDDFDataSource<String> clientNames = XDDFDataSourcesFactory.fromStringCellRange(sheet,
-                        new CellRangeAddress(anchor.getRow2() + 2, anchor.getRow2() + 1 + clientDataObjectRequest.getCompanyChartData().size(), 2, 2));
+                        new CellRangeAddress(anchor.getRow2() + 2,anchor.getRow2() + 1 + clientDataObjectRequest.getCompanyChartData().size(),2,2));
 
                 XDDFNumericalDataSource<Double> values = XDDFDataSourcesFactory.fromNumericCellRange(sheet,
-                        new CellRangeAddress(anchor.getRow2() + 2, anchor.getRow2() +1 + clientDataObjectRequest.getCompanyChartData().size(), 3, 3));
+                        new CellRangeAddress(anchor.getRow2() + 2,anchor.getRow2() + 1 + clientDataObjectRequest.getCompanyChartData().size(),3,3));
 
                 XDDFChartData data = chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
                 XDDFChartData.Series series = data.addSeries(clientNames, values);
                 series.setTitle(clientDataObjectRequest.getMetricName(), null);
-                data.setVaryColors(false);
+
+                ChartUtils.setDataLabels(series,7,true); // pos 7 = INT_OUT_END, showVal = true
+
                 chart.plot(data);
 
                 XDDFBarChartData bar = (XDDFBarChartData) data;
                 bar.setBarDirection(BarDirection.BAR);
+
+                ChartUtils.solidFillSeries(data, 0, PresetColor.BLUE);
 
                 Row bottomRow = sheet.createRow(anchor.getRow2() + clientDataObjectRequest.getCompanyChartData().size() + 3);
                 bottomRow.createCell(0).setCellValue(Constants.COPYRIGHT_FOOTER);

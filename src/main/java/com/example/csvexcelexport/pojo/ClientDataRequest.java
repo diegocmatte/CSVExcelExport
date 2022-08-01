@@ -7,7 +7,7 @@ public class ClientDataRequest {
     @JsonProperty("clientName")
     private String clientName;
     @JsonProperty("value")
-    private double value;
+    private Object value;
 
     @Override
     public String toString() {
