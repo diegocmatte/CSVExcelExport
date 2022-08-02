@@ -76,13 +76,13 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
-            <version>5.2.2</version>
+            <version>4.1.2</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml-full</artifactId>
-            <version>5.2.0</version>
+            <artifactId>ooxml-schemas</artifactId>
+            <version>1.4</version>
         </dependency>
 
     </dependencies>
