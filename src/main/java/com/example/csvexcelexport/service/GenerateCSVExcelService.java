@@ -2,7 +2,11 @@ package com.example.csvexcelexport.service;
 
 import com.example.csvexcelexport.pojo.ClientDataObjectRequest;
 
+import com.example.csvexcelexport.pojo.CompanyChartData;
 import com.example.csvexcelexport.utils.Constants;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.QuoteMode;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xddf.usermodel.PresetColor;
@@ -12,73 +16,43 @@ import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
 import org.apache.poi.xddf.usermodel.chart.*;
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 
 @Service
 public class GenerateCSVExcelService {
 
-    public ByteArrayInputStream generateFileDetails(ClientDataObjectRequest clientDataObjectRequest){
+    public InputStreamResource generateCSV(ClientDataObjectRequest clientDataObjectRequest) {
 
-        ByteArrayOutputStream file = new ByteArrayOutputStream();
+        String[] csvHeader = {"Client Name","Value"};
+        List<CompanyChartData> csvBody = clientDataObjectRequest.getCompanyChartData();
 
-        try{
-            try(XSSFWorkbook workbook = new XSSFWorkbook()){
-                XSSFSheet sheet = workbook.createSheet(clientDataObjectRequest.getMetricName());
-                Font headerFont = workbook.createFont();
-                headerFont.setBold(true);
-                headerFont.setUnderline(Font.U_SINGLE);
-                CellStyle headerCellStyle = workbook.createCellStyle();
-                headerCellStyle.setFillBackgroundColor(IndexedColors.GREY_40_PERCENT.getIndex());
-                headerCellStyle.setFont(headerFont);
+        ByteArrayInputStream byteArrayOutputStream;
 
-                Row headerRow = sheet.createRow(0);
-                headerRow.createCell(0).setCellValue(Constants.CLIENT_NAME);
-                headerRow.createCell(1).setCellValue("Value ("+clientDataObjectRequest.getDataFormatCodeValue()+")");
+        try(
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                CSVPrinter csvPrinter = new CSVPrinter(
+                        new PrintWriter(out),
+                        CSVFormat.DEFAULT.withHeader(csvHeader).withQuoteMode(QuoteMode.NON_NUMERIC)
+                );
+        ) {
 
-                for (int i = 0; i < headerRow.getLastCellNum(); i++) {
-                    headerRow.getCell(i).setCellStyle(headerCellStyle);
-                }
+            for (CompanyChartData record: csvBody) {
+                csvPrinter.printRecord(record.getClientName(), record.getValue());
 
-                CellStyle rowCellStyle = workbook.createCellStyle();
-
-                if (clientDataObjectRequest.getDataFormatCodeValue().equalsIgnoreCase(Constants.DATA_FORMAT_PERCENTAGE)) {
-                    rowCellStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00%"));
-                    //rowCellStyle.setDataFormat(workbook.createDataFormat().getFormat(BuiltinFormats.getBuiltinFormat(0xa)));
-                    for (int i = 0; i < clientDataObjectRequest.getCompanyChartData().size(); i++) {
-                        Row row = sheet.createRow(i + 1);
-                        row.createCell(0).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getClientName());
-                        row.createCell(1).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getValue()/100);
-                        row.getCell(1).setCellStyle(rowCellStyle);
-                    }
-                }
-
-                if(clientDataObjectRequest.getDataFormatCodeValue().equalsIgnoreCase(Constants.DATA_FORMAT_CURRENCY)) {
-                    rowCellStyle.setDataFormat(workbook.createDataFormat().getFormat("$0.00"));
-                    for (int i = 0; i < clientDataObjectRequest.getCompanyChartData().size(); i++) {
-                        Row row = sheet.createRow(i + 1);
-                        row.createCell(0).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getClientName());
-                        row.createCell(1).setCellValue(clientDataObjectRequest.getCompanyChartData().get(i).getValue());
-                        row.getCell(1).setCellStyle(rowCellStyle);
-                    }
-                }
-
-
-
-                sheet.autoSizeColumn(0);
-                sheet.autoSizeColumn(1);
-
-                Row bottomRow = sheet.createRow(clientDataObjectRequest.getCompanyChartData().size() + 2);
-                bottomRow.createCell(0).setCellValue(Constants.COPYRIGHT_FOOTER);
-
-                workbook.write(file);
             }
-        } catch (Exception e){
-
+            csvPrinter.flush();
+            byteArrayOutputStream = new ByteArrayInputStream(out.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage());
         }
 
-        return new ByteArrayInputStream(file.toByteArray());
+        return new InputStreamResource(byteArrayOutputStream);
 
     }
 
@@ -292,6 +266,4 @@ public class GenerateCSVExcelService {
             ex.printStackTrace();
         }
     }
-
-
 }
