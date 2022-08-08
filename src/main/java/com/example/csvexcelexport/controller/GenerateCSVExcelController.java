@@ -26,7 +26,7 @@ public class GenerateCSVExcelController {
     @Autowired
     private GenerateCSVExcelService generateCSVExcelService;
 
-    @PostMapping(value = "/exportfile/csv", produces="application/vnd.ms-excel")
+    @PostMapping(value = "/exportfile/csv")
     public ResponseEntity<InputStreamResource> exportCSV(@RequestBody ClientDataObjectRequest clientDataObjectRequest) {
 
         String dateFile = new SimpleDateFormat("MM-dd-yyyy").format(new java.util.Date());
@@ -46,7 +46,7 @@ public class GenerateCSVExcelController {
         );
     }
 
-    @PostMapping(value = "/exportfile/excel", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/exportfile/excel")
     public ResponseEntity<InputStreamResource> exportExcel(@RequestBody ClientDataObjectRequest clientDataObjectRequest) {
 
         ByteArrayInputStream file = generateCSVExcelService.generateFileDetailsWithChart(clientDataObjectRequest);
