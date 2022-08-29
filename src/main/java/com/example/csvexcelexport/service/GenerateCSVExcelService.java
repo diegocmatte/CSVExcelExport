@@ -62,7 +62,7 @@ public class GenerateCSVExcelService {
 
         try{
             try(XSSFWorkbook workbook = new XSSFWorkbook()){
-                XSSFSheet sheet = workbook.createSheet(clientDataObjectRequest.getMetricName());
+                XSSFSheet sheet = workbook.createSheet(clientDataObjectRequest.getMetricName().replace("/","_"));
                 Font headerFont = workbook.createFont();
                 headerFont.setBold(true);
                 headerFont.setUnderline(Font.U_SINGLE);
@@ -128,12 +128,13 @@ public class GenerateCSVExcelService {
                 if(clientDataObjectRequest.getDataFormatCodeValue().equalsIgnoreCase(Constants.DATA_FORMAT_PERCENTAGE)) {
                     leftAxis.setMaximum(1.0);
                 }
-                leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+                leftAxis.setCrosses(AxisCrosses.MAX);
                 leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 
                 sheet.shiftColumns(0,1,2);
                 sheet.autoSizeColumn(2);
                 sheet.autoSizeColumn(3);
+
 
                 XDDFDataSource<String> clientNames = XDDFDataSourcesFactory.fromStringCellRange(sheet,
                         new CellRangeAddress(anchor.getRow2() + 2,anchor.getRow2() + 1 + clientDataObjectRequest.getCompanyChartData().size(),2,2));
@@ -151,6 +152,9 @@ public class GenerateCSVExcelService {
 
                 XDDFBarChartData bar = (XDDFBarChartData) data;
                 bar.setBarDirection(BarDirection.BAR);
+
+                bottomAxis.setOrientation(AxisOrientation.MAX_MIN);
+
 
                 solidFillSeries(data, 0, PresetColor.BLUE);
 
