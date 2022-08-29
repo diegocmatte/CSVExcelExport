@@ -47,7 +47,7 @@ class CsvExcelExportApplicationTests {
     public void returning200(){
 
        Mockito.when(generateCSVExcelService.generateCSV(createObject()))
-               .thenReturn(this.generateCSV());
+               .thenCallRealMethod();
 
         try {
             RequestBuilder requestBuilder = MockMvcRequestBuilders.post("/generate/exportfile/csv")
